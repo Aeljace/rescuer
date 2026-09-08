@@ -1,3 +1,5 @@
+const VERSION = '2026-09-08.2';
+
 const json = (data, status = 200) =>
   new Response(JSON.stringify(data, null, 2), {
     status,
@@ -33,6 +35,7 @@ function apiInfo() {
   return json({
     ok: true,
     service: 'rescuelink-api',
+    version: VERSION,
     message: 'RescueLink API is running',
     endpoints: {
       health: 'GET /health',
@@ -83,7 +86,6 @@ async function saveEvent(env, body) {
   const missing = requireFields(body, ['id', 'type', 'createdAt']);
   if (missing) return json({ error: `Missing field: ${missing}` }, 400);
 
-  // BLE is only a proximity signal. It must never mark a person as rescued by itself.
   await env.DB.prepare(`
     INSERT INTO rescue_events (
       id, report_id, event_type, beacon_token, beacon_label, rssi,
@@ -131,13 +133,12 @@ export default {
       ? url.pathname.replace(/\/+$/, '')
       : url.pathname;
 
-    // Opening the Worker URL directly should confirm that the service is running.
     if (request.method === 'GET' && (pathname === '/' || pathname === '/api')) {
       return apiInfo();
     }
 
     if (request.method === 'GET' && pathname === '/health') {
-      return json({ ok: true, service: 'rescuelink-api' });
+      return json({ ok: true, service: 'rescuelink-api', version: VERSION });
     }
 
     if (request.method === 'GET' && pathname === '/api/beacons') {
@@ -170,6 +171,7 @@ export default {
     return json({
       error: 'Not found',
       path: pathname,
+      version: VERSION,
       availableEndpoints: [
         'GET /',
         'GET /health',
